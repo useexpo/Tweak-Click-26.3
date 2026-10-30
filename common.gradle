@@ -1,9 +1,14 @@
+apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'com.github.hierynomus.license'
-apply plugin: 'fabric-loom'
 apply plugin: 'com.replaymod.preprocess'
 
 int mcVersion = project.mcVersion
+if (mcVersion >= 260000) {
+    apply plugin: 'net.fabricmc.fabric-loom'
+} else {
+    apply plugin: 'fabric-loom'
+}
 version("v${project.mod_version}")
 
 //preprocess {
@@ -17,6 +22,12 @@ repositories {
 	}
     maven {
         url = 'https://masa.dy.fi/maven'
+    }
+    maven {
+        url = 'https://masa.dy.fi/maven/sakura-ryoko'
+    }
+    maven {
+        url = 'https://jitpack.io'
     }
     maven {
         url = 'https://maven.terraformersmc.com/releases'
@@ -44,8 +55,10 @@ def mod_dependencies = [
 ]
 
 // https://github.com/FabricMC/fabric-loader/issues/783
-configurations {
-    modRuntimeOnly.exclude group: 'net.fabricmc', module: 'fabric-loader'
+if (mcVersion < 260000) {
+    configurations {
+        modRuntimeOnly.exclude group: 'net.fabricmc', module: 'fabric-loader'
+    }
 }
 
 base.archivesName = "${project.archives_base_name}-mc${project.minecraft_version}"
@@ -53,35 +66,56 @@ base.archivesName = "${project.archives_base_name}-mc${project.minecraft_version
 dependencies {
     // loom
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-//    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-	mappings loom.layered() {
-		officialMojangMappings()
-		if (project.parchment_version.size() > 0) {
-			parchment("org.parchmentmc.data:parchment-${project.minecraft_version}:${project.parchment_version}@zip")
-		}
-	}
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    if (mcVersion < 260000) {
+        mappings loom.layered() {
+            officialMojangMappings()
+            if (project.parchment_version.size() > 0) {
+                parchment("org.parchmentmc.data:parchment-${project.minecraft_version}:${project.parchment_version}@zip")
+            }
+        }
+    }
+    if (mcVersion >= 260000) {
+        implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    } else {
+        modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    }
 
     mod_dependencies.forEach { item ->
         def dependencyNotation = item[0]
         def activatedInRuntime = item[1]
-        if (activatedInRuntime) {
-            modImplementation(dependencyNotation) {
-                exclude group: 'com.github.sakura-ryoko', module: 'malilib'
+        if (mcVersion >= 260000) {
+            if (activatedInRuntime) {
+                implementation(dependencyNotation) {
+                    exclude group: 'com.github.sakura-ryoko', module: 'malilib'
+                }
+            } else {
+                compileOnly(dependencyNotation) {
+                    exclude group: 'com.github.sakura-ryoko', module: 'malilib'
+                }
             }
         } else {
-            modCompileOnly(dependencyNotation) {
-                exclude group: 'com.github.sakura-ryoko', module: 'malilib'
+            if (activatedInRuntime) {
+                modImplementation(dependencyNotation) {
+                    exclude group: 'com.github.sakura-ryoko', module: 'malilib'
+                }
+            } else {
+                modCompileOnly(dependencyNotation) {
+                    exclude group: 'com.github.sakura-ryoko', module: 'malilib'
+                }
             }
         }
     }
-    implementation project(':fabricWrapper')
+    if (findProject(':fabricWrapper') != null) {
+        implementation project(':fabricWrapper')
+    }
 }
 
 def MIXIN_CONFIG_PATHS = ["${project.mod_id}.mixins.json"]
 String LANG_DIR = "assets/${project.mod_id}/lang"
 JavaVersion JAVA_COMPATIBILITY
-if (mcVersion >= 12005) {
+if (mcVersion >= 260000) {
+    JAVA_COMPATIBILITY = JavaVersion.VERSION_25
+} else if (mcVersion >= 12005) {
     JAVA_COMPATIBILITY = JavaVersion.VERSION_21
 } else if (mcVersion >= 11800) {
     JAVA_COMPATIBILITY = JavaVersion.VERSION_17
@@ -134,7 +168,7 @@ tasks.register("runProductionClient", JavaExec) {
 // See https://youtrack.jetbrains.com/issue/IDEA-296490
 // if IDEA complains about "Cannot resolve resource filtering of MatchingCopyAction" and you want to know why
 processResources {
-    inputs.property "id", "${project.mod_id}_${mcVersion}"
+    inputs.property "id", project.mod_id
     inputs.property "name", project.mod_name
     inputs.property "version", project.version
     inputs.property "minecraft_dependency", project.minecraft_dependency
@@ -144,7 +178,7 @@ processResources {
 
     filesMatching("fabric.mod.json") {
         def valueMap = [
-                "id"                  : "${project.mod_id}_${mcVersion}",
+                "id"                  : project.mod_id,
                 "name"                : project.mod_name,
                 "version"             : project.mod_version,
                 "minecraft_dependency": project.minecraft_dependency,
@@ -166,7 +200,9 @@ processResources {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
     options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
-    if (JAVA_COMPATIBILITY <= JavaVersion.VERSION_1_8) {
+    if (mcVersion >= 260000) {
+        options.release = 25
+    } else if (JAVA_COMPATIBILITY <= JavaVersion.VERSION_1_8) {
         // suppressed "source/target value 8 is obsolete and will be removed in a future release"
         options.compilerArgs << '-Xlint:-options'
     }

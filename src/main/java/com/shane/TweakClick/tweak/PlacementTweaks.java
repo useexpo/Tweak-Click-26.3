@@ -25,7 +25,11 @@
 package com.shane.TweakClick.tweak;
 
 import com.shane.TweakClick.config.FeatureToggleExtended;
+//#if MC >= 260000
+//$$ import net.minecraft.resources.Identifier;
+//#else
 import net.minecraft.resources.ResourceLocation;
+//#endif
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -67,10 +71,12 @@ public class PlacementTweaks {
     @Nullable
     private static Block getBlockFromName(String name) {
         try {
-            //#if MC <= 12100
-            ResourceLocation identifier = new ResourceLocation(name);
-            //#else
+            //#if MC >= 260000
+            //$$ Identifier identifier = Identifier.parse(name);
+            //#elseif MC > 12100
             //$$ ResourceLocation identifier = ResourceLocation.parse(name);
+            //#else
+            ResourceLocation identifier = new ResourceLocation(name);
             //#endif
 
             //#if MC <= 11802

@@ -45,8 +45,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinMinecraftClient {
     @Shadow
     protected int missTime;
+//#if MC < 260300
     @Shadow
     public Screen screen;
+//#endif
     @Final
     @Shadow
     public Options options;
@@ -54,7 +56,12 @@ public class MixinMinecraftClient {
     @Inject(method = "handleKeybinds", at = @At("HEAD"))
     private void onHoldEasyPlace(CallbackInfo ci) {
         Minecraft mc = (Minecraft) (Object) this;
-        if (this.screen == null && mc.player != null && FeatureToggleExtended.ONLY_SPRINT_HOLD_ATTACK.getBooleanValue() && FeatureToggle.TWEAK_TOOL_SWITCH.getBooleanValue()) {
+//#if MC >= 260300
+//$$    boolean isScreenNull = mc.gui.screen() == null;
+//#else
+        boolean isScreenNull = this.screen == null;
+//#endif
+        if (isScreenNull && mc.player != null && FeatureToggleExtended.ONLY_SPRINT_HOLD_ATTACK.getBooleanValue() && FeatureToggle.TWEAK_TOOL_SWITCH.getBooleanValue()) {
             LocalPlayer player = mc.player;
             if (this.missTime >= 10000) {
                 this.missTime = 0;

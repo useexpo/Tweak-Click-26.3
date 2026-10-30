@@ -58,9 +58,7 @@ public enum FeatureToggleExtended implements IHotkeyTogglable, IConfigNotifiable
     //$$ private String comment;
     //$$ private String prettyName;
     //$$ private String translatedName;
-    //$$ //#if MC > 12108
-    //$$ //$$ private boolean dirty;
-    //$$ //#endif
+    //$$ private boolean dirty;
     //#endif
     private final IKeybind keybind;
     private final boolean defaultValueBoolean;
@@ -95,9 +93,7 @@ public enum FeatureToggleExtended implements IHotkeyTogglable, IConfigNotifiable
     //$$    this(name, defaultValue, singlePlayer, defaultHotkey, settings, comment, prettyName, name);
     //$$ }
     //$$ FeatureToggleExtended(String name, boolean defaultValue, boolean singlePlayer, String defaultHotkey, KeybindSettings settings, String comment, String prettyName, String translatedName) {
-    //$$     //#if MC > 12108
-    //$$     //$$ this.dirty = false;
-    //$$     //#endif
+    //$$     this.dirty = false;
     //$$     this.name = name;
     //$$     this.valueBoolean = defaultValue;
     //$$     this.defaultValueBoolean = defaultValue;
